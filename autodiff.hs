@@ -16,7 +16,7 @@ resolve t = case t of
   (Const d)         -> d
   (Var _ t)         -> resolve t
   (UnaryExpr uop t) -> case uop of
-                         Negate -> resolve (BinExpr Sub (Const 0) t)
+                         Negate -> 0 - (resolve t)
                          Log    -> log (resolve t)
                          Exp    -> exp (resolve t)
   (BinExpr bop tl tr)  -> case bop of
@@ -33,7 +33,7 @@ diff t wrt = case (t, wrt) of
   ((Const d), _)             -> 0
   ((Var name t), wrt)        -> if name == wrt then 1 else diff t wrt
   ((UnaryExpr uop t), wrt)   -> case uop of
-                                 Negate ->  diff (BinExpr Sub (Const 0) t) wrt
+                                 Negate -> 0 - (diff t wrt)
                                  Log    -> (1 / (resolve t)) * (diff t wrt)
                                  Exp    -> exp (resolve t)
   ((BinExpr bop tl tr), wrt) -> case bop of
