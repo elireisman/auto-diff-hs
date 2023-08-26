@@ -4,7 +4,7 @@ data BinOp = Pow | Mult | Div | Add | Sub deriving (Eq, Show)
 data UnaryOp = Negate | Log deriving (Eq, Show)
 
 data Tensor = Const Double
-            | Var String Double
+            | Var String Tensor
             | UnaryExpr UnaryOp Tensor
             | BinExpr BinOp Tensor Tensor
             deriving (Show)
@@ -14,7 +14,7 @@ data Tensor = Const Double
 resolve :: Tensor -> Double
 resolve t = case t of
   (Const d)         -> d
-  (Var _ d)         -> d
+  (Var _ t)         -> resolve t
   (UnaryExpr uop t) -> case uop of
                          Negate -> negate (resolve t)
                          Log    -> log (resolve t)
@@ -28,24 +28,33 @@ resolve t = case t of
 
 -- traverse the Tensor tree and resolve the partial derivative of expression's scalar value
 diff :: Tensor -> String -> Double
-diff t dv = case (t, dv) of
+diff t wrt = case (t, wrt) of
   ((Const d), _)            -> 0
-  ((Var name d), dv)        -> if name == dv then 1 else d
-  ((UnaryExpr uop t), dv)   -> case uop of
-                                 Negate -> negate (diff t dv)
-                                 Log    -> log (diff t dv)
-  ((BinExpr bop tl tr), dv) -> case bop of
-                                 Pow  -> v * (diff tl dv) ** (v-1) where v = diff tr dv
-                                 Mult -> ((diff tl dv) * (resolve tr)) + ((diff tr dv) * (resolve tl))
-                                 Div  -> (((diff tl dv) * (resolve tr)) + ((diff tr dv) * (resolve tl))) / ((resolve tr) ** 2)
-                                 Add  -> (diff tl dv) + (diff tr dv)
-                                 Sub  -> (diff tl dv) - (diff tr dv)
+  ((Var name t), wrt)        -> if name == wrt then 1 else diff t wrt
+  ((UnaryExpr uop t), wrt)   -> case uop of
+                                 Negate -> negate (diff t wrt)
+                                 Log    -> (1 / (resolve t)) * (diff t wrt)
+  ((BinExpr bop tl tr), wrt) -> case bop of
+                                 Pow  -> v * (diff tl wrt) ** (v-1) where v = diff tr wrt
+                                 Mult -> ((diff tl wrt) * (resolve tr)) + ((diff tr wrt) * (resolve tl))
+                                 Div  -> (((diff tl wrt) * (resolve tr)) + ((diff tr wrt) * (resolve tl))) / ((resolve tr) ** 2)
+                                 Add  -> (diff tl wrt) + (diff tr wrt)
+                                 Sub  -> (diff tl wrt) - (diff tr wrt)
 
--- test drive it on: dx/dy of "x + (2*y)"
-example = show $ diff z "x" where
-  z = BinExpr Add x (BinExpr Mult (Const 2) y)
-  x = Var "x" 3
-  y = Var "y" 5
+-- test drive it on "(x + y) * y"
+example1 = show $ resolve z where
+  z = BinExpr Mult (BinExpr Add x y) y
+  x = Var "x" (Const 3)
+  y = Var "y" (Const 5)
 
-main = putStrLn example
+example2 = show $ diff z2 "y" where
+  z2 = BinExpr Mult z1 y
+  z1 = BinExpr Add x y
+  x = Var "x" (Const 3)
+  y = Var "y" (Const 5)
+
+main = do 
+  putStrLn "test simple calculation, then differentiation, of the function: (x + y) * y"
+  putStrLn $ "calculate at x=3, y=5: " ++ example1
+  putStrLn $ "differentiate with respect to 'y' at x=3, y=5: " ++ example2
 
