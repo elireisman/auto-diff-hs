@@ -125,4 +125,5 @@ test-suite auto-diff-hs-test
     -- Test dependencies.
     build-depends:
         base ^>=4.17.0.0,
-        auto-diff-hs
+        auto-diff-hs,
+        HUnit
