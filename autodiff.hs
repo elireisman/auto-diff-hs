@@ -11,67 +11,68 @@ data Tensor = Const Double
 
 
 -- traverse the Tensor tree and calculate the expression's scalar value
-resolve :: Tensor -> Double
-resolve t = case t of
+eval :: Tensor -> Double
+eval t = case t of
   (Const d)         -> d
-  (Var _ t)         -> resolve t
+  (Var _ t)         -> eval t
   (UnaryExpr uop t) -> case uop of
-                         Negate -> 0 - (resolve t)
-                         Log    -> log (resolve t)
-                         Exp    -> exp (resolve t)
+                         Negate -> 0 - (eval t)
+                         Log    -> log (eval t)
+                         Exp    -> exp (eval t)
   (BinExpr bop tl tr)  -> case bop of
-                         Pow  -> (resolve tl) ** (resolve tr)
-                         Mult -> (resolve tl) * (resolve tr)
-                         Div  -> (resolve tl) / (resolve tr)
-                         Add  -> (resolve tl) + (resolve tr)
-                         Sub  -> (resolve tl) - (resolve tr)
+                         Pow  -> (eval tl) ** (eval tr)
+                         Mult -> (eval tl) * (eval tr)
+                         Div  -> (eval tl) / (eval tr)
+                         Add  -> (eval tl) + (eval tr)
+                         Sub  -> (eval tl) - (eval tr)
 
 
--- traverse the Tensor tree and resolve the partial derivative of expression's scalar value
+-- traverse the Tensor tree and eval the partial derivative of expression's scalar value
 diff :: Tensor -> String -> Double
 diff t wrt = case (t, wrt) of
   ((Const d), _)             -> 0
   ((Var name t), wrt)        -> if name == wrt then 1 else diff t wrt
   ((UnaryExpr uop t), wrt)   -> case uop of
-                                 Negate -> 0 - (diff t wrt)
-                                 Log    -> (1 / (resolve t)) * (diff t wrt)
-                                 Exp    -> exp (resolve t)
+                                  Negate -> 0 - (diff t wrt)
+                                  Log    -> (1 / (eval t)) * (diff t wrt)
+                                  Exp    -> (diff t wrt) * exp (eval t)
   ((BinExpr bop tl tr), wrt) -> case bop of
-                                 Pow  -> v * (diff tl wrt) ** (v-1) where v = diff tr wrt
-                                 Mult -> ((diff tl wrt) * (resolve tr)) + ((resolve tl) * (diff tr wrt))
-                                 Div  -> (((diff tl wrt) * (resolve tr)) - ((resolve tl) * (diff tr wrt))) / ((resolve tr) * (resolve tr))
-                                 Add  -> (diff tl wrt) + (diff tr wrt)
-                                 Sub  -> (diff tl wrt) - (diff tr wrt)
+                                  Pow  -> dtr * (diff tl wrt) ** (dtr-1) where dtr = diff tr wrt
+                                  Mult -> ((diff tl wrt) * (eval tr)) + ((eval tl) * (diff tr wrt))
+                                  Div  -> (((diff tl wrt) * (eval tr)) - ((eval tl) * (diff tr wrt))) / ((eval tr) * (eval tr))
+                                  Add  -> (diff tl wrt) + (diff tr wrt)
+                                  Sub  -> (diff tl wrt) - (diff tr wrt)
 
 -- test drive it
-example1 = resolve z where
-  z = BinExpr Mult (BinExpr Add x y) y
-  x = Var "x" (Const 3)
-  y = Var "y" (Const 5)
+x = Var "x" (Const 3)
+y = Var "y" (Const 5)
+
+numerator   = BinExpr Sub (Const 12) (BinExpr Mult x e2y)
+denominator = BinExpr Add (Const 45) (BinExpr Mult x (BinExpr Mult y e2nx))
+e2y         = UnaryExpr Exp y
+e2nx        = UnaryExpr Exp (UnaryExpr Negate x)
+
+example1 = eval z2 where
+  z2 = BinExpr Mult z1 y
+  z1 = BinExpr Add x y
 
 example2 = diff z2 "y" where
   z2 = BinExpr Mult z1 y
   z1 = BinExpr Add x y
-  x  = Var "x" (Const 3)
-  y  = Var "y" (Const 5)
 
 example3 = diff z "x" where
-  z    = BinExpr Div (BinExpr Sub (Const 12) (BinExpr Mult x e2y)) (BinExpr Add (Const 45) (BinExpr Mult x (BinExpr Mult y e2nx)))
-  e2y  = UnaryExpr Exp y
-  e2nx = UnaryExpr Exp (UnaryExpr Negate x)
-  x    = Var "x" (Const 3)
-  y    = Var "y" (Const 5)
+  z           = BinExpr Div numerator denominator
+  numerator   = BinExpr Sub (Const 12) (BinExpr Mult x e2y)
+  denominator = BinExpr Add (Const 45) (BinExpr Mult x (BinExpr Mult y e2nx))
+  e2y         = UnaryExpr Exp y
+  e2nx        = UnaryExpr Exp (UnaryExpr Negate x)
 
 example4 = diff z "y" where
-  z    = BinExpr Div (BinExpr Sub (Const 12) (BinExpr Mult x e2y)) (BinExpr Add (Const 45) (BinExpr Mult x (BinExpr Mult y e2nx)))
-  e2y  = UnaryExpr Exp y
-  e2nx = UnaryExpr Exp (UnaryExpr Negate x)
-  x    = Var "x" (Const 3)
-  y    = Var "y" (Const 5)
+  z           = BinExpr Div numerator denominator
 
 -- execute the tests
-main = do 
-  putStrLn $ "calculate '(x + y) * y)' at x=3, y=5: " ++ show example1
+main = do
+  putStrLn $ "evaluate '(x + y) * y)' at x=3, y=5: " ++ show example1
   putStrLn $ "differentiate '(x + y) * y' with respect to 'y' at x=3, y=5: " ++ show example2
   putStrLn $ "differentiate '(12 - (x * e^y)) / (45 + (x * y * e^(-x)))' with respect to 'x' at x=3, y=5: " ++ show example3
   putStrLn $ "differentiate '(12 - (x * e^y)) / (45 + (x * y * e^(-x)))' with respect to 'y' at x=3, y=5: " ++ show example4
