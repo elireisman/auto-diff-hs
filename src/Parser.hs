@@ -21,7 +21,7 @@ sumExpr = do
             spaces;
             op <- sumOp;
             spaces;
-            tr <- term;
+            tr <- expr;
             return (BinExpr op tl tr)
 
 term :: Parser Tensor
@@ -36,7 +36,7 @@ productExpr = do
                 spaces;
                 op <- productOp;
                 spaces;
-                tr <- factor;
+                tr <- term;
                 return (BinExpr op tl tr)
 
 factor :: Parser Tensor
@@ -79,22 +79,28 @@ var :: Parser Tensor
 var = do
         name <- many letter;
         string "@";
-        val <- try negatableValue <|> real;
+        val <- try negatableValue;
         return (Var name val)
 
--- hack, only needed while we limit vars to simple scalar values
+-- hack: variables should only support fully-resolved scalar values
 negatableValue :: Parser Tensor
 negatableValue = do
-            fn <- prefix;
+            fn <- maybeNegated;
             spaces;
             e  <- real;
-            return (UnaryExpr fn e)
+            case fn of
+              Just op -> return (UnaryExpr op e)
+              _       -> return e
 
+maybeNegated :: Parser (Maybe UnaryOp)
+maybeNegated = optionMaybe (string "-" >> return Negate)
+
+-- parse floating point scalars; negation handled by caller
 real :: Parser Tensor
 real = characteristic <> mantissa  <> exponent >>= \s -> spaces >> return (Const (read s))
 
 digits :: Parser String
-digits = many (oneOf "0123456789")
+digits = many digit
 
 characteristic :: Parser String
 characteristic = digits
