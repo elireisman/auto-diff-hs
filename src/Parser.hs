@@ -52,11 +52,11 @@ base = spaces >> (try nestedExpr <|> try call <|> try var <|> real <?> "base")
 
 nestedExpr :: Parser Tensor
 nestedExpr = do
-               string "(";
+               _ <- string "(";
                spaces;
                e <- expr;
                spaces;
-               string ")";
+               _ <- string ")";
                spaces;
                return e
 
@@ -69,8 +69,8 @@ call = do
 
 prefix :: Parser UnaryOp
 prefix = do
-           prefix <- (string "-" <|> string "log" <|> string "exp");
-           case prefix of
+           pre <- (string "-" <|> string "log" <|> string "exp");
+           case pre of
              "-"       -> return Negate
              "log"     -> return Log
              "exp"     -> return Exp
@@ -78,8 +78,8 @@ prefix = do
 var :: Parser Tensor
 var = do
         name <- many letter;
-        string "@";
-        val <- try negatableValue;
+        _    <- string "@";
+        val  <- try negatableValue;
         return (Var name val)
 
 -- hack: variables should only support fully-resolved scalar values
