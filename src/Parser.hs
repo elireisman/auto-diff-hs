@@ -10,7 +10,7 @@ tensorFromString :: String -> Either ParseError Tensor
 tensorFromString input = parse expr "f =" input
 
 expr :: Parser Tensor
-expr = (try sumExpr) <|> term <?> "expr"
+expr = try sumExpr <|> term <?> "expr"
 
 sumOp :: Parser BinOp
 sumOp = (string "+" >> return Add) <|> (string "-" >> return Sub)
@@ -25,7 +25,7 @@ sumExpr = do
             return (BinExpr op tl tr)
 
 term :: Parser Tensor
-term = (try productExpr) <|> factor <?> "term"
+term = try productExpr <|> factor <?> "term"
 
 productOp :: Parser BinOp
 productOp = (string "*" >> return Mult) <|> (string "/" >> return Div)
@@ -48,7 +48,17 @@ factor = do
             _       -> return tl
 
 base :: Parser Tensor
-base = spaces >> (try (string "(" >> spaces >> expr >>= \e -> (spaces >> string ")" >> spaces) >> return e) <|> try call <|> try var <|> real <?> "base")
+base = spaces >> (try nestedExpr <|> try call <|> try var <|> real <?> "base")
+
+nestedExpr :: Parser Tensor
+nestedExpr = do
+               string "(";
+               spaces;
+               e <- expr;
+               spaces;
+               string ")";
+               spaces;
+               return e
 
 call :: Parser Tensor
 call = do
@@ -67,7 +77,7 @@ prefix = do
 
 var :: Parser Tensor
 var = do
-        name <- try (many letter);
+        name <- many letter;
         string "@";
         val <- try negatableValue <|> real;
         return (Var name val)
