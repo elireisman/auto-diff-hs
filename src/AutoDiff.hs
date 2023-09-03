@@ -9,6 +9,7 @@ data Tensor = Const Double
             | Var String Tensor
             | UnaryExpr UnaryOp Tensor
             | BinExpr BinOp Tensor Tensor
+            | TError String
             deriving (Show)
 
 

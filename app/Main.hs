@@ -1,35 +1,34 @@
 module Main where
 
 import AutoDiff
+import Parser
 
--- shared vars for examples
-x = Var "x" (Const 3)
-y = Var "y" (Const 5)
+-- evaluate @s@
+evalF :: String -> String
+evalF s = "f = " ++ s ++
+  "\n" ++ "parsed: " ++ (show t) ++
+  "\n" ++ "evaluated: " ++ (show $ eval t)
+  where
+    t = case (tensorFromString s) of
+          Left  parseErr     -> TError (show parseErr)
+          Right parsedTensor -> parsedTensor
 
-numerator   = BinExpr Sub (Const 12) (BinExpr Mult x e2y)
-denominator = BinExpr Add (Const 45) (BinExpr Mult x (BinExpr Mult y e2nx))
-e2y         = UnaryExpr Exp y
-e2nx        = UnaryExpr Exp (UnaryExpr Negate x)
+-- differentiate @s@ with respect to var @v@
+differentiateF :: String -> String -> String
+differentiateF s v = "f = " ++ s ++
+  "\n" ++ "parsed: " ++ (show t) ++
+  "\n" ++ "differentiated: f'(" ++ v ++ ") = " ++ (show $ diff t v)
+  where
+    t = case (tensorFromString s) of
+          Left  parseErr     -> TError (show parseErr)
+          Right parsedTensor -> parsedTensor
 
--- test examples
-example1 = eval z2 where
-  z2 = BinExpr Mult z1 y
-  z1 = BinExpr Add x y
 
-example2 = diff z2 "y" where
-  z2 = BinExpr Mult z1 y
-  z1 = BinExpr Add x y
-
-example3 = diff z "x" where
-  z           = BinExpr Div numerator denominator
-
-example4 = diff z "y" where
-  z           = BinExpr Div numerator denominator
-
--- execute the tests
+-- stub: execute a couple examples
 main :: IO ()
 main = do
-  putStrLn $ "evaluate '(x + y) * y)' at x=3, y=5: " ++ show example1
-  putStrLn $ "differentiate '(x + y) * y' with respect to 'y' at x=3, y=5: " ++ show example2
-  putStrLn $ "differentiate '(12 - (x * e^y)) / (45 + (x * y * e^(-x)))' with respect to 'x' at x=3, y=5: " ++ show example3
-  putStrLn $ "differentiate '(12 - (x * e^y)) / (45 + (x * y * e^(-x)))' with respect to 'y' at x=3, y=5: " ++ show example4
+  -- define expression to be evaluated and differentiated at x=3, y=5
+  let f = "(12 - (x@3 * exp(y@5))) / (45 + (x@3 * y@5 * exp(-x@3)))"
+  putStrLn $ evalF f
+  putStrLn $ differentiateF f "x"
+  putStrLn $ differentiateF f "y"
