@@ -1,4 +1,4 @@
-module Parser where
+module Parser (tensorFromString) where
 
 import AutoDiff
 import Text.Parsec
@@ -7,51 +7,54 @@ import Prelude hiding (exponent)
 type Parser a = Parsec String () a
 
 tensorFromString :: String -> Either ParseError Tensor
-tensorFromString input = parse expr "f = ..." input
+tensorFromString input = parse expr "f =" input
 
 expr :: Parser Tensor
-expr = sumExpr <|> term <?> "expr fail"
+expr = (try sumExpr) <|> term <?> "expr"
+
+sumOp :: Parser BinOp
+sumOp = (string "+" >> return Add) <|> (string "-" >> return Sub)
 
 sumExpr :: Parser Tensor
-sumExpr = try addExpr <|> try subExpr
-
-addExpr :: Parser Tensor
-addExpr = term >>= \tl -> spaces >> string "+" >> spaces >> factor >>= \tr -> return (BinExpr Add tl tr)
-
-subExpr :: Parser Tensor
-subExpr = term >>= \tl -> spaces >> string "-" >> spaces >> factor >>= \tr -> return (BinExpr Sub tl tr)
+sumExpr = do
+            tl <- term;
+            spaces;
+            op <- sumOp;
+            spaces;
+            tr <- term;
+            return (BinExpr op tl tr)
 
 term :: Parser Tensor
-term = productExpr <|> factor <?> "term fail"
+term = (try productExpr) <|> factor <?> "term"
+
+productOp :: Parser BinOp
+productOp = (string "*" >> return Mult) <|> (string "/" >> return Div)
 
 productExpr :: Parser Tensor
-productExpr = try multExpr <|> try divExpr
-
-multExpr :: Parser Tensor
-multExpr = factor >>= \tl -> spaces >> string "*" >> spaces >> base >>= \tr -> return (BinExpr Mult tl tr)
-
-divExpr :: Parser Tensor
-divExpr = factor >>= \tl -> spaces >> string "/" >> spaces >> base >>= \tr -> return (BinExpr Div tl tr)
+productExpr = do
+                tl <- factor;
+                spaces;
+                op <- productOp;
+                spaces;
+                tr <- factor;
+                return (BinExpr op tl tr)
 
 factor :: Parser Tensor
 factor = do
-          tl <- try base;
-          mt <- optionMaybe (string "^" >> arg);
+          tl <- base;
+          mt <- optionMaybe (spaces >> string "^" >> spaces >> base);
           case mt of
             Just tr -> return (BinExpr Pow tl tr)
             _       -> return tl
 
 base :: Parser Tensor
-base = (string "(" >> expr >>= \e -> string ")" >> return e) <|> call <|> var <|> value <?> "base fail"
-
-arg :: Parser Tensor
-arg = (string "(" >> expr >>= \e -> string ")" >> return e) <|> call <|> var <|> value <?> "exponent fail"
+base = spaces >> (try (string "(" >> spaces >> expr >>= \e -> (spaces >> string ")" >> spaces) >> return e) <|> try call <|> try var <|> real <?> "base")
 
 call :: Parser Tensor
 call = do
-        fn <- try prefix;
+        fn <- prefix;
         spaces;
-        e  <- expr;
+        e  <- base;
         return (UnaryExpr fn e)
 
 prefix :: Parser UnaryOp
@@ -66,19 +69,19 @@ var :: Parser Tensor
 var = do
         name <- try (many letter);
         string "@";
-        val <- negatableValue <?> "var fail";
+        val <- try negatableValue <|> real;
         return (Var name val)
 
 -- hack, only needed while we limit vars to simple scalar values
 negatableValue :: Parser Tensor
-negatableValue = (do
-        fn <- try prefix;
-        spaces;
-        e  <- try value;
-        return (UnaryExpr fn e))
+negatableValue = do
+            fn <- prefix;
+            spaces;
+            e  <- real;
+            return (UnaryExpr fn e)
 
-value :: Parser Tensor
-value = characteristic <> mantissa  <> exponent >>= \s -> return (Const (read s))
+real :: Parser Tensor
+real = characteristic <> mantissa  <> exponent >>= \s -> spaces >> return (Const (read s))
 
 digits :: Parser String
 digits = many (oneOf "0123456789")
@@ -94,4 +97,3 @@ exponent = option "" (string "e" <> sign <> digits)
 
 sign :: Parser String
 sign = option "" (string "+" <|> string "-")
-
