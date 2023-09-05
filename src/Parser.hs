@@ -69,11 +69,14 @@ call = do
 
 prefix :: Parser UnaryOp
 prefix = do
-           pre <- (string "-" <|> string "log" <|> string "exp");
+           pre <- (string "-" <|> string "log" <|> string "exp" <|> string "sin" <|> string "cos" <|> string "tan");
            case pre of
              "-"       -> return Negate
              "log"     -> return Log
              "exp"     -> return Exp
+             "sin"     -> return Sin
+             "cos"     -> return Cos
+             "tan"     -> return Tan
 
 var :: Parser Tensor
 var = do
