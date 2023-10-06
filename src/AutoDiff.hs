@@ -44,7 +44,7 @@ diff t wrt = case (t, wrt) of
                                    Negate -> 0 - (diff t' wrt')
                                    Log    -> (1 / (eval t')) * (diff t' wrt')
                                    Exp    -> (diff t' wrt') * exp (eval t')
-                                   Sin    -> (diff t' wrt') * (cos (eval t'))
+                                   Sin    -> (diff t' wrt') * cos (eval t')
                                    Cos    -> (diff t' wrt') * (-(sin (eval t')))
                                    Tan    -> (diff t' wrt') * (1 / cos (eval t'))**2
   ((BinExpr bop tl tr), wrt') -> case bop of
