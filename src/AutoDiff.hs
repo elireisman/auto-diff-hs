@@ -1,10 +1,10 @@
 module AutoDiff where
 
--- supported expression forms; TODO: parse text inputs into these
+-- supported operations
 data BinOp = Pow | Mult | Div | Add | Sub deriving (Eq, Show)
-
 data UnaryOp = Negate | Log | Exp | Sin | Cos | Tan deriving (Eq, Show)
 
+-- Tensor types
 data Tensor = Const Double
             | Var String Tensor
             | UnaryExpr UnaryOp Tensor
@@ -32,7 +32,7 @@ eval t = case t of
                           Div  -> (eval tl) / (eval tr)
                           Add  -> (eval tl) + (eval tr)
                           Sub  -> (eval tl) - (eval tr)
-
+  TError msg         ->   error ("in `eval` at " ++ (show t) ++ " with message: " ++ msg)
 
 -- traverse the Tensor tree and differentiate the expression and evaluate
 -- with all variables bound to a scalar value, resulting in a scalar
@@ -53,4 +53,4 @@ diff t wrt = case (t, wrt) of
                                    Div  -> (((diff tl wrt') * (eval tr)) - ((eval tl) * (diff tr wrt'))) / ((eval tr) * (eval tr))
                                    Add  -> (diff tl wrt') + (diff tr wrt')
                                    Sub  -> (diff tl wrt') - (diff tr wrt')
-
+  ((TError msg), _)           -> error ("in `diff` at " ++ (show t) ++ " with message: " ++ msg)
