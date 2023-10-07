@@ -10,7 +10,7 @@ evalF s = "f = " ++ s ++
   "\n" ++ "evaluated: " ++ (show $ eval t)
   where
     t = case (tensorFromString s) of
-          Left  parseErr     -> show parseErr
+          Left  parseErr     -> error (show parseErr)
           Right parsedTensor -> parsedTensor
 
 -- differentiate @s@ with respect to var @v@
@@ -20,7 +20,7 @@ differentiateF s v = "f = " ++ s ++
   "\n" ++ "differentiated: f'(" ++ v ++ ") = " ++ (show $ diff t v)
   where
     t = case (tensorFromString s) of
-          Left  parseErr     -> show parseErr
+          Left  parseErr     -> error (show parseErr)
           Right parsedTensor -> parsedTensor
 
 
