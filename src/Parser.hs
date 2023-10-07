@@ -77,6 +77,7 @@ prefix = do
              "sin"     -> return Sin
              "cos"     -> return Cos
              "tan"     -> return Tan
+             _         -> error ("at `prefix`: " ++ pre)
 
 var :: Parser Tensor
 var = do
