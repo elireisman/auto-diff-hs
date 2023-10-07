@@ -68,16 +68,12 @@ call = do
         return (UnaryExpr fn e)
 
 prefix :: Parser UnaryOp
-prefix = do
-           pre <- (string "-" <|> string "log" <|> string "exp" <|> string "sin" <|> string "cos" <|> string "tan");
-           case pre of
-             "-"       -> return Negate
-             "log"     -> return Log
-             "exp"     -> return Exp
-             "sin"     -> return Sin
-             "cos"     -> return Cos
-             "tan"     -> return Tan
-             _         -> error ("at `prefix`: " ++ pre)
+prefix = (string "-" >> return Negate) <|>
+         (string "log" >> return Log) <|>
+         (string "exp" >> return Exp) <|>
+         (string "sin" >> return Sin) <|>
+         (string "cos" >> return Cos) <|>
+         (string "tan" >> return Tan)
 
 var :: Parser Tensor
 var = do

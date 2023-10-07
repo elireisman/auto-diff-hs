@@ -1,10 +1,10 @@
 module AutoDiff where
 
--- supported operations
+-- operation types
 data BinOp = Pow | Mult | Div | Add | Sub deriving (Eq, Show)
 data UnaryOp = Negate | Log | Exp | Sin | Cos | Tan deriving (Eq, Show)
 
--- Tensor types
+-- expression types
 data Tensor = Const Double
             | Var String Tensor
             | UnaryExpr UnaryOp Tensor
@@ -12,8 +12,8 @@ data Tensor = Const Double
             deriving (Eq, Show)
 
 
--- traverse the Tensor tree and evaluate the expression with all variables
--- bound to a scalar value, resulting in a scalar
+-- traverse the Tensor tree and evaluate the expression with
+-- all variables bound to a scalar value, resulting in a scalar
 eval :: Tensor -> Double
 eval t = case t of
   Const d            -> d
@@ -32,8 +32,8 @@ eval t = case t of
                           Add  -> (eval tl) + (eval tr)
                           Sub  -> (eval tl) - (eval tr)
 
--- traverse the Tensor tree and differentiate the expression and evaluate
--- with all variables bound to a scalar value, resulting in a scalar
+-- traverse the Tensor tree and differentiate the expression with
+-- all variables bound to a scalar value, resulting in a scalar
 diff :: Tensor -> String -> Double
 diff t wrt = case (t, wrt) of
   ((Const _), _)              -> 0
