@@ -48,6 +48,6 @@ diff t wrt = case (t, wrt) of
   ((BinExpr bop tl tr), wrt') -> case bop of
                                    Pow  -> dtr * (diff tl wrt') ** (dtr-1) where dtr = diff tr wrt'
                                    Mult -> ((diff tl wrt') * (eval tr)) + ((eval tl) * (diff tr wrt'))
-                                   Div  -> (((diff tl wrt') * (eval tr)) - ((eval tl) * (diff tr wrt'))) / ((eval tr) * (eval tr))
+                                   Div  -> (((diff tl wrt') * (eval tr)) - ((eval tl) * (diff tr wrt'))) / (eval tr)**2
                                    Add  -> (diff tl wrt') + (diff tr wrt')
                                    Sub  -> (diff tl wrt') - (diff tr wrt')
