@@ -9,7 +9,6 @@ data Tensor = Const Double
             | Var String Tensor
             | UnaryExpr UnaryOp Tensor
             | BinExpr BinOp Tensor Tensor
-            | TError String
             deriving (Eq, Show)
 
 
@@ -32,7 +31,6 @@ eval t = case t of
                           Div  -> (eval tl) / (eval tr)
                           Add  -> (eval tl) + (eval tr)
                           Sub  -> (eval tl) - (eval tr)
-  TError msg         ->   error ("in `eval` at " ++ (show t) ++ " with message: " ++ msg)
 
 -- traverse the Tensor tree and differentiate the expression and evaluate
 -- with all variables bound to a scalar value, resulting in a scalar
@@ -42,7 +40,7 @@ diff t wrt = case (t, wrt) of
   ((Var name t'), wrt')       -> if name == wrt' then 1 else diff t' wrt'
   ((UnaryExpr uop t'), wrt')  -> case uop of
                                    Negate -> 0 - (diff t' wrt')
-                                   Log    -> (1 / (eval t')) * (diff t' wrt')
+                                   Log    -> (diff t' wrt') * (1 / (eval t'))
                                    Exp    -> (diff t' wrt') * exp (eval t')
                                    Sin    -> (diff t' wrt') * cos (eval t')
                                    Cos    -> (diff t' wrt') * (-(sin (eval t')))
@@ -53,4 +51,3 @@ diff t wrt = case (t, wrt) of
                                    Div  -> (((diff tl wrt') * (eval tr)) - ((eval tl) * (diff tr wrt'))) / ((eval tr) * (eval tr))
                                    Add  -> (diff tl wrt') + (diff tr wrt')
                                    Sub  -> (diff tl wrt') - (diff tr wrt')
-  ((TError msg), _)           -> error ("in `diff` at " ++ (show t) ++ " with message: " ++ msg)

@@ -52,7 +52,7 @@ testParse :: String -> Tensor -> Test
 testParse s expected = TestCase (assertEqual ("parse " ++ s) got expected)
   where got = case (tensorFromString s) of
                 Right t  -> t
-                Left err -> TError (show err)
+                Left err -> error (show err)
 
 tensorSuite :: Test
 tensorSuite = TestList [
